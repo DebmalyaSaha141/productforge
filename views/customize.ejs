@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="<%= settings.colorScheme %>">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customize - ProductForge CTF Challenge</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="/js/script.js" defer></script>
+</head>
+<body class="font-size-<%= settings.fontSize %>">
+  <header>
+    <div class="logo">
+      <h1>Product<span>Forge</span></h1>
+    </div>
+    <nav>
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/products">Products</a></li>
+        <li><a href="/customize">Customize</a></li>
+        <!-- <li><a href="/hints">Hints</a></li> -->
+        <li><a href="/about">About</a></li>
+        <li><a href="/check-admin" class="admin-link">Admin</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="layout-flexbox">
+    <% if (typeof feedback !== 'undefined' && feedback) { %>
+      <div class="feedback-message">
+        <%= feedback %>
+      </div>
+    <% } %>
+    <div class="layout-<%= settings.layout %>"></div>
+    
+    <section class="customize-section">
+      <h2>Customize Your Experience</h2>
+      <p>Modify how you interact with ProductForge using our advanced settings API.</p>
+      
+      <div class="current-settings">
+        <h3>Current Settings</h3>
+        <pre id="settings-display"><%= JSON.stringify(settings, null, 2) %></pre>
+      </div>
+      
+      <div class="customize-form">
+        <h3>Update Settings</h3>
+        <form action="/customize" method="POST">
+          <div class="form-group">
+            <label for="colorScheme">Color Scheme:</label>
+            <select name="colorScheme" id="colorScheme">
+              <option value="light" <%= settings.colorScheme === 'light' ? 'selected' : '' %>>Light</option>
+              <option value="dark" <%= settings.colorScheme === 'dark' ? 'selected' : '' %>>Dark</option>
+              <option value="blue" <%= settings.colorScheme === 'blue' ? 'selected' : '' %>>Blue</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="fontSize">Font Size:</label>
+            <select name="fontSize" id="fontSize">
+              <option value="small" <%= settings.fontSize === 'small' ? 'selected' : '' %>>Small</option>
+              <option value="medium" <%= settings.fontSize === 'medium' ? 'selected' : '' %>>Medium</option>
+              <option value="large" <%= settings.fontSize === 'large' ? 'selected' : '' %>>Large</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="layout">Layout Style:</label>
+            <select name="layout" id="layout">
+              <option value="grid" <%= settings.layout === 'grid' ? 'selected' : '' %>>Grid</option>
+              <option value="list" <%= settings.layout === 'list' ? 'selected' : '' %>>List</option>
+            </select>
+          </div>
+          
+          <button type="button" class="btn primary" onclick="updateViaForm()">Update Settings</button>
+        </form>
+      </div>
+      
+      <div class="advanced-settings">
+        <h3>Advanced JSON Settings</h3>
+        <p class="hint">For power users! You can directly modify your settings using our JSON API.</p>
+        <form action="/customize" method="POST">
+          <div class="form-group">
+            <label for="settings">JSON Settings:</label>
+            <textarea name="settings" id="settings" rows="8" placeholder='{"colorScheme": "dark", "fontSize": "medium"}'></textarea>
+          </div>
+          <div class="form-hint">
+            <p>This endpoint accepts a JSON object and <em>deeply merges</em> it with your current settings.</p>
+            <p class="subtle-hint">Objects in JavaScript share interesting properties with their ancestors...</p>
+          </div>
+          <button type="submit" class="btn primary">Apply JSON Settings</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 ProductForge CTF Challenge</p>
+    <p class="subtle-hint">Created By Debmalya Saha</p>
+  </footer>
+
+  <script>
+    function updateViaForm() {
+      const colorScheme = document.getElementById('colorScheme').value;
+      const fontSize = document.getElementById('fontSize').value;
+      const layout = document.getElementById('layout').value;
+      
+      const settings = {
+        colorScheme,
+        fontSize,
+        layout
+      };
+      
+      document.getElementById('settings').value = JSON.stringify(settings, null, 2);
+    }
+  </script>
+</body>
+</html>

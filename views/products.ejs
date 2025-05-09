@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="<%= settings.colorScheme %>">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Products - ProductForge CTF Challenge</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="/js/script.js" defer></script>
+</head>
+<body class="font-size-<%= settings.fontSize %>">
+  <header>
+    <div class="logo">
+      <h1>Product<span>Forge</span></h1>
+    </div>
+    <nav>
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/products">Products</a></li>
+        <li><a href="/customize">Customize</a></li>
+        <!-- <li><a href="/hints">Hints</a></li> -->
+        <li><a href="/about">About</a></li>
+        <li><a href="/check-admin" class="admin-link">Admin</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="layout-flexbox">
+    <% if (typeof feedback !== 'undefined' && feedback) { %>
+      <div class="feedback-message">
+        <%= feedback %>
+      </div>
+    <% } %>
+    <div class="layout-<%= settings.layout %>"></div>
+    
+    <section class="products-section">
+      <h2>Your Products</h2>
+      
+      <div class="add-product">
+        <h3>Add New Product</h3>
+        <form action="/products/add" method="POST">
+          <div class="form-group">
+            <label for="name">Product Name:</label>
+            <input type="text" name="name" id="name" required placeholder="Enter product name">
+          </div>
+          
+          <div class="form-group">
+            <label for="description">Description:</label>
+            <textarea name="description" id="description" rows="3" placeholder="Describe your product"></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label for="price">Price:</label>
+            <input type="text" name="price" id="price" placeholder="0.00">
+          </div>
+          
+          <button type="submit" class="btn primary">Add Product</button>
+        </form>
+      </div>
+      
+      <div class="product-list">
+        <h3>Your Product Inventory</h3>
+        <% if (Object.keys(products).length === 0) { %>
+          <p class="empty-state">You haven't added any products yet. Start by adding one above!</p>
+        <% } else { %>
+          <div class="products-container">
+            <% Object.values(products).forEach(product => { %>
+              <div class="product-card">
+                <h4><%= product.name %></h4>
+                <p class="product-description"><%= product.description %></p>
+                <p class="product-price">$<%= product.price %></p>
+                <a href="/products/<%= product.id %>" class="btn secondary small">View Details</a>
+              </div>
+            <% }); %>
+          </div>
+        <% } %>
+      </div>
+    </section>
+  </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 ProductForge CTF Challenge</p>
+    <p class="subtle-hint">Created By Debmalya Saha</p>
+  </footer>
+</body>
+</html>

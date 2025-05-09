@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="<%= settings.colorScheme %>">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hints - ProductForge CTF Challenge</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="/js/script.js" defer></script>
+</head>
+<body class="font-size-<%= settings.fontSize %>">
+  <header>
+    <div class="logo">
+      <h1>Product<span>Forge</span></h1>
+    </div>
+    <nav>
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/products">Products</a></li>
+        <li><a href="/customize">Customize</a></li>
+        <!-- <li><a href="/hints">Hints</a></li> -->
+        <li><a href="/about">About</a></li>
+        <li><a href="/check-admin" class="admin-link">Admin</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="layout-flexbox">
+    <% if (typeof feedback !== 'undefined' && feedback) { %>
+      <div class="feedback-message">
+        <%= feedback %>
+      </div>
+    <% } %>
+    <div class="layout-<%= settings.layout %>"></div>
+    
+    <section class="hints-section">
+      <h2>Challenge Hints</h2>
+      
+      <div class="hint-card">
+        <h3>Hint #1: Object Properties</h3>
+        <p>In JavaScript, objects inherit properties from their prototype.</p>
+        <pre class="code-example">
+Object.prototype.example = "I exist on all objects!";
+let myObj = {};
+console.log(myObj.example); // "I exist on all objects!"</pre>
+      </div>
+      
+      <div class="hint-card">
+        <h3>Hint #2: Object Merging</h3>
+        <p>When merging objects recursively, be careful of special property names.</p>
+        <pre class="code-example">
+// Consider how this merging works:
+function merge(target, source) {
+  for (const key in source) {
+    if (typeof source[key] === 'object') {
+      merge(target[key], source[key]);
+    } else {
+      target[key] = source[key];
+    }
+  }
+}</pre>
+      </div>
+      
+      <div class="hint-card">
+        <h3>Hint #3: What to Target</h3>
+        <p>The <code>/check-admin</code> endpoint checks for a specific property on your settings object.</p>
+        <p>What property might it be looking for?</p>
+      </div>
+      
+      <div class="hint-card">
+        <h3>Hint #4: JSON Structure</h3>
+        <p>The JSON settings form accepts nested objects. Consider what would happen with a specially crafted input like:</p>
+        <pre class="code-example">
+{
+  "__proto__": {
+    "someProperty": "someValue"
+  }
+}</pre>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 ProductForge CTF Challenge</p>
+    <p class="subtle-hint">Created By Debmalya Saha</p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="<%= settings.colorScheme %>">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProductForge - CTF Challenge</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="/js/script.js" defer></script>
+</head>
+<body class="font-size-<%= settings.fontSize %>">
+  <header>
+    <div class="logo">
+      <h1>Product<span>Forge</span></h1>
+    </div>
+    <nav>
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/products">Products</a></li>
+        <li><a href="/customize">Customize</a></li>
+        <!-- <li><a href="/hints">Hints</a></li> -->
+        <li><a href="/about">About</a></li>
+        <li><a href="/check-admin" class="admin-link">Admin</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="layout-flexbox">
+    <% if (typeof feedback !== 'undefined' && feedback) { %>
+      <div class="feedback-message">
+        <%= feedback %>
+      </div>
+    <% } %>
+    <div class="layout-<%= settings.layout %>"></div>
+    <section class="hero">
+      <div class="hero-content">
+        <h1>Welcome to ProductForge</h1>
+        <p>Create and customize your virtual product inventory</p>
+        <div class="cta-buttons">
+          <a href="/products" class="btn primary">View Products</a>
+          <a href="/customize" class="btn secondary">Customize Interface</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="features">
+      <div class="feature-card">
+        <h3>Create Products</h3>
+        <p>Add new products to your inventory with custom details</p>
+      </div>
+      <div class="feature-card">
+        <h3>Customize Interface</h3>
+        <p>Modify your experience with custom settings</p>
+      </div>
+      <div class="feature-card">
+        <h3>Challenge Hints</h3>
+        <p>Our custom <em>object merging system</em> makes everything better!</p>
+      </div>
+    </section>
+
+    <section class="challenge-intro">
+      <h2>CTF Challenge</h2>
+      <p>This website contains a vulnerability related to how objects are handled. Can you find the flag by gaining admin access?</p>
+      <p class="hint">Hint: Pay close attention to the way object properties are merged in the customization feature.</p>
+    </section>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 ProductForge CTF Challenge</p>
+    <p class="subtle-hint">Created By Debmalya Saha</p>
+  </footer>
+</body>
+</html>

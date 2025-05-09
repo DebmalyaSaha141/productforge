@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="<%= settings.colorScheme %>">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About - ProductForge CTF Challenge</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="/js/script.js" defer></script>
+</head>
+<body class="font-size-<%= settings.fontSize %>">
+  <header>
+    <div class="logo">
+      <h1>Product<span>Forge</span></h1>
+    </div>
+    <nav>
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/products">Products</a></li>
+        <li><a href="/customize">Customize</a></li>
+        <!-- <li><a href="/hints">Hints</a></li> -->
+        <li><a href="/about">About</a></li>
+        <li><a href="/check-admin" class="admin-link">Admin</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="layout-flexbox">
+    <% if (typeof feedback !== 'undefined' && feedback) { %>
+      <div class="feedback-message">
+        <%= feedback %>
+      </div>
+    <% } %>
+    <div class="layout-<%= settings.layout %>"></div>
+    
+    <section class="about-section">
+      <h2>About ProductForge</h2>
+      
+      <div class="about-content">
+        <h3>CTF Challenge</h3>
+        <p>This website was created as a Capture The Flag challenge to test your web security knowledge.</p>
+        <p>Your mission is to find the hidden flag by exploiting a vulnerability in the website.</p>
+        
+        <h3>Technologies Used</h3>
+        <ul>
+          <li>Node.js with Express</li>
+          <li>EJS templating</li>
+          <li>Express session for user isolation</li>
+          <li>Custom JSON object merging functionality</li>
+        </ul>
+        
+        <h3>Challenge Info</h3>
+        <p>This challenge focuses on a common web security vulnerability related to JavaScript objects.</p>
+        <p>The <code>/customize</code> endpoint allows you to modify your user settings via a JSON API.</p>
+        <p class="hint">Deep merging of objects can sometimes have unexpected consequences if not implemented carefully...</p>
+        
+        <h3>Object Properties in JavaScript</h3>
+        <p>Did you know? In JavaScript, all objects inherit from <code>Object.prototype</code>. This inheritance chain is what gives all objects methods like <code>toString()</code> and <code>hasOwnProperty()</code>.</p>
+      </div>
+    </section>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 ProductForge CTF Challenge</p>
+    <p class="subtle-hint">Created By Debmalya Saha</p>
+  </footer>
+</body>
+</html>

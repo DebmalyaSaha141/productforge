@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="<%= settings.colorScheme %>">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - ProductForge CTF Challenge</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="/js/script.js" defer></script>
+</head>
+<body class="font-size-<%= settings.fontSize %>">
+  <header>
+    <div class="logo">
+      <h1>Product<span>Forge</span></h1>
+    </div>
+    <nav>
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/products">Products</a></li>
+        <li><a href="/customize">Customize</a></li>
+        <!-- <li><a href="/hints">Hints</a></li> -->
+        <li><a href="/about">About</a></li>
+        <li><a href="/check-admin" class="admin-link">Admin</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="layout-flexbox">
+    <% if (typeof feedback !== 'undefined' && feedback) { %>
+      <div class="feedback-message">
+        <%= feedback %>
+      </div>
+    <% } %>
+    <div class="layout-<%= settings.layout %>"></div>
+    <section class="admin-section">
+      <h2>Admin Panel</h2>
+      
+      <div class="congrats-message">
+        <h3>Congratulations!</h3>
+        <p>You've successfully exploited the prototype pollution vulnerability.</p>
+      </div>
+      
+      <div class="flag-container">
+        <h3>Here's your flag:</h3>
+        <div class="flag">
+          <code><%= flag %></code>
+        </div>
+      </div>
+      
+      <div class="explanation">
+        <h3>How it worked:</h3>
+        <p>The vulnerable <code>mergeObjects</code> function allowed you to pollute the Object prototype.</p>
+        <p>By adding the <code>isAdmin</code> property to the Object prototype, every object in the application inherited this property.</p>
+        <p>This is a classic example of prototype pollution, a vulnerability that occurs when an attacker is able to add or modify properties of JavaScript's Object prototype.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 ProductForge CTF Challenge</p>
+    <p class="subtle-hint">Created By Debmalya Saha</p>
+  </footer>
+</body>
+</html>
