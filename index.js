@@ -16,12 +16,20 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Session middleware for user isolation
-app.use(session({
-  secret: crypto.randomBytes(32).toString('hex'),
-  resave: false,
+// Make sure session works on serverless environment with proper storage
+const sessionConfig = {
+  secret: 'gfg-ctf-secure-session-key',  // Fixed secret so sessions persist between serverless invocations
+  resave: true,
   saveUninitialized: true,
-  cookie: { secure: process.env.NODE_ENV === 'production' }
-}));
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+};
+
+// In production, you might want to use a proper session store like Redis
+// This is a simplified version for the CTF
+app.use(session(sessionConfig));
 
 // Flag - will be revealed through prototype pollution
 const FLAG = "gfgCTF{pr0t0_p0llut10n_1s_d4ng3r0us}";
@@ -38,19 +46,19 @@ app.use((req, res, next) => {
       layout: "grid"
     };
   }
-  // Create isolated session-specific prototype
-  if (!req.session.objectPrototype) {
-    req.session.objectPrototype = Object.create(Object.prototype);
+  if (!req.session.pollutedProps) {
+    req.session.pollutedProps = {};
   }
   next();
 });
 
 // Custom merge function with vulnerability (preserved for CTF challenge)
-function mergeObjects(target, source, sessionPrototype) {
+function mergeObjects(target, source) {
   for (const key in source) {
     if (source.hasOwnProperty(key)) {
-      if (typeof source[key] === 'object' && source[key] !== null && typeof target[key] === 'object' && target[key] !== null) {
-        mergeObjects(target[key], source[key], sessionPrototype);
+      if (typeof source[key] === 'object' && source[key] !== null && 
+          typeof target[key] === 'object' && target[key] !== null) {
+        mergeObjects(target[key], source[key]);
       } else {
         target[key] = source[key];
       }
@@ -64,27 +72,34 @@ app.get('/', (req, res) => {
   res.render('index', { 
     settings: req.session.customizationSettings,
     products: req.session.userProducts,
-    feedback: req.session.feedback || ''
+    feedback: req.session.feedback || '',
+    pollutedProps: req.session.pollutedProps
   });
 });
 
 app.get('/customize', (req, res) => {
   res.render('customize', { 
     settings: req.session.customizationSettings,
-    feedback: req.session.feedback || ''
+    feedback: req.session.feedback || '',
+    pollutedProps: req.session.pollutedProps
   });
 });
 
 app.post('/customize', (req, res) => {
   try {
-    // Parse JSON from request body - this is the vulnerable part (intentionally)
+    // Parse JSON from request body - this is the vulnerable part
     const newSettings = req.body.settings ? JSON.parse(req.body.settings) : {};
     
-    // Handle prototype pollution attempt within the session scope
+    // Explicitly handle prototype pollution attempt for Vercel compatibility
     if (newSettings.__proto__) {
-      // Apply the prototype pollution to the session's isolated prototype
-      mergeObjects(req.session.objectPrototype, newSettings.__proto__);
-      delete newSettings.__proto__; // Remove it from the regular settings
+      // Store polluted properties in session instead of actual prototype
+      mergeObjects(req.session.pollutedProps, newSettings.__proto__);
+      delete newSettings.__proto__; // Remove it from regular settings
+      
+      // Explicitly check for isAdmin
+      if (newSettings.__proto__.isAdmin) {
+        req.session.pollutedProps.isAdmin = newSettings.__proto__.isAdmin;
+      }
     }
     
     // Merging settings using vulnerable function
@@ -102,7 +117,8 @@ app.get('/products', (req, res) => {
   res.render('products', { 
     products: req.session.userProducts,
     settings: req.session.customizationSettings,
-    feedback: req.session.feedback || ''
+    feedback: req.session.feedback || '',
+    pollutedProps: req.session.pollutedProps
   });
 });
 
@@ -132,14 +148,19 @@ app.get('/products/:id', (req, res) => {
   res.render('product-detail', {
     product,
     settings: req.session.customizationSettings,
-    feedback: req.session.feedback || ''
+    feedback: req.session.feedback || '',
+    pollutedProps: req.session.pollutedProps
   });
 });
 
 app.get('/check-admin', (req, res) => {
-  // Check the session's objectPrototype for the isAdmin property
-  if (req.session.objectPrototype.isAdmin === true) {
-    res.render('admin', { flag: FLAG, settings: req.session.customizationSettings });
+  // Check the session's pollutedProps for isAdmin
+  if (req.session.pollutedProps.isAdmin === true) {
+    res.render('admin', { 
+      flag: FLAG, 
+      settings: req.session.customizationSettings,
+      pollutedProps: req.session.pollutedProps 
+    });
   } else {
     req.session.feedback = "You don't have admin privileges!";
     res.redirect('/');
@@ -147,19 +168,36 @@ app.get('/check-admin', (req, res) => {
 });
 
 app.get('/hints', (req, res) => {
-  res.render('hints', { settings: req.session.customizationSettings });
+  res.render('hints', { 
+    settings: req.session.customizationSettings,
+    pollutedProps: req.session.pollutedProps
+  });
 });
 
 app.get('/about', (req, res) => {
-  res.render('about', { settings: req.session.customizationSettings });
+  res.render('about', { 
+    settings: req.session.customizationSettings,
+    pollutedProps: req.session.pollutedProps
+  });
+});
+
+// Debug route for serverless environment
+app.get('/debug', (req, res) => {
+  res.json({
+    sessionActive: req.session ? true : false,
+    settings: req.session.customizationSettings,
+    pollutedProps: req.session.pollutedProps,
+    products: Object.keys(req.session.userProducts || {}).length,
+    feedback: req.session.feedback || 'No feedback'
+  });
 });
 
 app.get('*', (req, res) => {
   res.status(404).send('404 Not Found');
 });
 
-// app.listen(PORT, () => {
-//   console.log(`Server running on port ${PORT}`);
-// });
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
 module.exports = app;
