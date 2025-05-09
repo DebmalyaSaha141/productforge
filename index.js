@@ -1,5 +1,5 @@
 const express = require('express');
-const session = require('express-session');
+// const session = require('express-session');
 const path = require('path');
 const crypto = require('crypto');
 const bodyParser = require('body-parser');
@@ -15,40 +15,54 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Session middleware for user isolation
-// Make sure session works on serverless environment with proper storage
-const sessionConfig = {
-  secret: 'gfg-ctf-secure-session-key',  // Fixed secret so sessions persist between serverless invocations
-  resave: true,
-  saveUninitialized: true,
-  cookie: { 
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
-};
-
-// In production, you might want to use a proper session store like Redis
-// This is a simplified version for the CTF
-app.use(session(sessionConfig));
-
-// Flag - will be revealed through prototype pollution
+// Flag - will be revealed through the CTF challenge
 const FLAG = "gfgCTF{pr0t0_p0llut10n_1s_d4ng3r0us}";
 
-// Initialize session data
+// Serverless-compatible session handling
+// For Vercel deployments, we'll use cookies to store essential data
+// instead of relying on server-side session storage
 app.use((req, res, next) => {
-  if (!req.session.userProducts) {
-    req.session.userProducts = {};
+  // Parse cookies manually
+  const cookies = {};
+  if (req.headers.cookie) {
+    req.headers.cookie.split(';').forEach(cookie => {
+      const parts = cookie.split('=');
+      cookies[parts[0].trim()] = decodeURIComponent(parts[1].trim());
+    });
   }
-  if (!req.session.customizationSettings) {
-    req.session.customizationSettings = {
-      colorScheme: "light",
-      fontSize: "medium",
-      layout: "grid"
-    };
-  }
-  if (!req.session.pollutedProps) {
-    req.session.pollutedProps = {};
-  }
+  
+  // Create our custom session object
+  req.session = {
+    // Parse stored data from cookies or set defaults
+    customizationSettings: cookies.customizationSettings ? 
+      JSON.parse(cookies.customizationSettings) : 
+      { colorScheme: "light", fontSize: "medium", layout: "grid" },
+    
+    pollutedProps: cookies.pollutedProps ? 
+      JSON.parse(cookies.pollutedProps) : 
+      {},
+    
+    // Store feedback in URL instead of session for serverless compatibility
+    feedback: req.query.feedback || '',
+    
+    // Simple method to save session data to cookies
+    save: () => {
+      res.cookie('customizationSettings', JSON.stringify(req.session.customizationSettings), {
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+      });
+      
+      res.cookie('pollutedProps', JSON.stringify(req.session.pollutedProps), {
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+      });
+    }
+  };
+  
   next();
 });
 
@@ -67,12 +81,32 @@ function mergeObjects(target, source) {
   return target;
 }
 
+// Product data is now stored directly in cookies
+function getUserProducts(cookies) {
+  if (cookies.userProducts) {
+    try {
+      return JSON.parse(cookies.userProducts);
+    } catch (e) {
+      return {};
+    }
+  }
+  return {};
+}
+
+// Utility function to redirect with feedback
+function redirectWithFeedback(res, url, message) {
+  const redirectUrl = `${url}${url.includes('?') ? '&' : '?'}feedback=${encodeURIComponent(message)}`;
+  res.redirect(redirectUrl);
+}
+
 // Routes
 app.get('/', (req, res) => {
+  const userProducts = getUserProducts(req.cookies || {});
+  
   res.render('index', { 
     settings: req.session.customizationSettings,
-    products: req.session.userProducts,
-    feedback: req.session.feedback || '',
+    products: userProducts,
+    feedback: req.query.feedback || '',
     pollutedProps: req.session.pollutedProps
   });
 });
@@ -80,7 +114,7 @@ app.get('/', (req, res) => {
 app.get('/customize', (req, res) => {
   res.render('customize', { 
     settings: req.session.customizationSettings,
-    feedback: req.session.feedback || '',
+    feedback: req.query.feedback || '',
     pollutedProps: req.session.pollutedProps
   });
 });
@@ -97,27 +131,31 @@ app.post('/customize', (req, res) => {
       delete newSettings.__proto__; // Remove it from regular settings
       
       // Explicitly check for isAdmin
-      if (newSettings.__proto__.isAdmin) {
-        req.session.pollutedProps.isAdmin = newSettings.__proto__.isAdmin;
+      if (newSettings.__proto__ && newSettings.__proto__.isAdmin) {
+        req.session.pollutedProps.isAdmin = true;
       }
     }
     
     // Merging settings using vulnerable function
     req.session.customizationSettings = mergeObjects(req.session.customizationSettings, newSettings);
     
-    req.session.feedback = "Settings updated successfully!";
-    res.redirect('/customize');
+    // Save to cookies
+    req.session.save();
+    
+    // Redirect with feedback
+    redirectWithFeedback(res, '/customize', 'Settings updated successfully!');
   } catch (error) {
-    req.session.feedback = "Error updating settings: " + error.message;
-    res.redirect('/customize');
+    redirectWithFeedback(res, '/customize', 'Error updating settings: ' + error.message);
   }
 });
 
 app.get('/products', (req, res) => {
+  const userProducts = getUserProducts(req.cookies || {});
+  
   res.render('products', { 
-    products: req.session.userProducts,
+    products: userProducts,
     settings: req.session.customizationSettings,
-    feedback: req.session.feedback || '',
+    feedback: req.query.feedback || '',
     pollutedProps: req.session.pollutedProps
   });
 });
@@ -126,7 +164,11 @@ app.post('/products/add', (req, res) => {
   const { name, description, price } = req.body;
   const productId = crypto.randomBytes(8).toString('hex');
   
-  req.session.userProducts[productId] = {
+  // Get existing products
+  let userProducts = getUserProducts(req.cookies || {});
+  
+  // Add new product
+  userProducts[productId] = {
     id: productId,
     name: name || "Unnamed Product",
     description: description || "No description",
@@ -134,27 +176,35 @@ app.post('/products/add', (req, res) => {
     dateAdded: new Date().toISOString()
   };
   
-  req.session.feedback = "Product added successfully!";
-  res.redirect('/products');
+  // Save products to cookie
+  res.cookie('userProducts', JSON.stringify(userProducts), {
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax'
+  });
+  
+  redirectWithFeedback(res, '/products', 'Product added successfully!');
 });
 
 app.get('/products/:id', (req, res) => {
-  const product = req.session.userProducts[req.params.id];
+  const userProducts = getUserProducts(req.cookies || {});
+  const product = userProducts[req.params.id];
+  
   if (!product) {
-    req.session.feedback = "Product not found!";
-    return res.redirect('/products');
+    return redirectWithFeedback(res, '/products', 'Product not found!');
   }
   
   res.render('product-detail', {
     product,
     settings: req.session.customizationSettings,
-    feedback: req.session.feedback || '',
+    feedback: req.query.feedback || '',
     pollutedProps: req.session.pollutedProps
   });
 });
 
 app.get('/check-admin', (req, res) => {
-  // Check the session's pollutedProps for isAdmin
+  // Check the pollutedProps for isAdmin
   if (req.session.pollutedProps.isAdmin === true) {
     res.render('admin', { 
       flag: FLAG, 
@@ -162,38 +212,34 @@ app.get('/check-admin', (req, res) => {
       pollutedProps: req.session.pollutedProps 
     });
   } else {
-    req.session.feedback = "You don't have admin privileges!";
-    res.redirect('/');
+    redirectWithFeedback(res, '/', "You don't have admin privileges!");
   }
 });
 
 app.get('/hints', (req, res) => {
   res.render('hints', { 
     settings: req.session.customizationSettings,
-    pollutedProps: req.session.pollutedProps
+    pollutedProps: req.session.pollutedProps,
+    feedback: req.query.feedback || ''
   });
 });
 
 app.get('/about', (req, res) => {
   res.render('about', { 
     settings: req.session.customizationSettings,
-    pollutedProps: req.session.pollutedProps
+    pollutedProps: req.session.pollutedProps,
+    feedback: req.query.feedback || ''
   });
 });
 
 // Debug route for serverless environment
 app.get('/debug', (req, res) => {
   res.json({
-    sessionActive: req.session ? true : false,
-    settings: req.session.customizationSettings,
+    cookies: req.cookies || {},
+    customizationSettings: req.session.customizationSettings,
     pollutedProps: req.session.pollutedProps,
-    products: Object.keys(req.session.userProducts || {}).length,
-    feedback: req.session.feedback || 'No feedback'
+    query: req.query
   });
-});
-
-app.get('*', (req, res) => {
-  res.status(404).send('404 Not Found');
 });
 
 // app.listen(PORT, () => {

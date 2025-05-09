@@ -1,17 +1,38 @@
 // Wait for DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', function() {
-  // Auto-hide feedback messages after 5 seconds
-  const feedbackMessage = document.querySelector('.feedback-message');
-  if (feedbackMessage && feedbackMessage.textContent.trim() !== '') {
-    // Make sure the feedback is visible initially
+  // Handle feedback messages from URL query parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  const feedbackParam = urlParams.get('feedback');
+  
+  // Create or update feedback message if it exists in URL
+  if (feedbackParam) {
+    let feedbackMessage = document.querySelector('.feedback-message');
+    
+    // Create feedback element if it doesn't exist
+    if (!feedbackMessage) {
+      feedbackMessage = document.createElement('div');
+      feedbackMessage.className = 'feedback-message';
+      const main = document.querySelector('main');
+      if (main) {
+        main.insertBefore(feedbackMessage, main.firstChild);
+      }
+    }
+    
+    // Set the feedback message and show it
+    feedbackMessage.textContent = feedbackParam;
     feedbackMessage.style.display = 'block';
     feedbackMessage.style.opacity = '1';
     
-    // Set timeout to hide it
+    // Auto-hide after 5 seconds
     setTimeout(() => {
       feedbackMessage.style.opacity = '0';
       setTimeout(() => {
         feedbackMessage.style.display = 'none';
+        
+        // Remove from URL without page reload - improve UX
+        const url = new URL(window.location);
+        url.searchParams.delete('feedback');
+        window.history.replaceState({}, '', url);
       }, 500);
     }, 5000);
   }
@@ -51,6 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
     exampleButton.type = 'button';
     exampleButton.className = 'btn btn-secondary';
     exampleButton.textContent = 'Show Payload Example';
+    exampleButton.style.marginRight = '10px';
     exampleButton.onclick = function() {
       const settingsInput = document.getElementById('settings-input');
       if (settingsInput) {
@@ -64,7 +86,36 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     };
     
-    customizeForm.appendChild(exampleButton);
+    const hackButton = document.createElement('button');
+    hackButton.type = 'button';
+    hackButton.className = 'btn btn-danger';
+    hackButton.textContent = 'Show Admin Hack';
+    hackButton.onclick = function() {
+      const settingsInput = document.getElementById('settings-input');
+      if (settingsInput) {
+        settingsInput.value = JSON.stringify({
+          "colorScheme": "dark",
+          "__proto__": {
+            "isAdmin": true
+          }
+        }, null, 2);
+      }
+    };
+    
+    // Add buttons to form
+    const actionDiv = document.createElement('div');
+    actionDiv.className = 'form-action-buttons';
+    actionDiv.style.marginTop = '10px';
+    actionDiv.appendChild(exampleButton);
+    actionDiv.appendChild(hackButton);
+    
+    // Find the existing form-actions div or create one
+    const formActions = customizeForm.querySelector('.form-actions');
+    if (formActions) {
+      formActions.appendChild(actionDiv);
+    } else {
+      customizeForm.appendChild(actionDiv);
+    }
   }
   
   // Add a subtle hint about prototype pollution in console
