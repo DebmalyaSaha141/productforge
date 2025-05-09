@@ -196,8 +196,8 @@ app.get('*', (req, res) => {
   res.status(404).send('404 Not Found');
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// app.listen(PORT, () => {
+//   console.log(`Server running on port ${PORT}`);
+// });
 
 module.exports = app;
