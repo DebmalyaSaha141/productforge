@@ -1,28 +1,20 @@
 const express = require('express');
-// const session = require('express-session');
 const path = require('path');
 const crypto = require('crypto');
 const bodyParser = require('body-parser');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Set up view engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Body parser middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Flag - will be revealed through the CTF challenge
 const FLAG = "gfgCTF{pr0t0_p0llut10n_1s_d4ng3r0us}";
 
-// Serverless-compatible session handling
-// For Vercel deployments, we'll use cookies to store essential data
-// instead of relying on server-side session storage
 app.use((req, res, next) => {
-  // Parse cookies manually
   const cookies = {};
   if (req.headers.cookie) {
     req.headers.cookie.split(';').forEach(cookie => {
@@ -31,9 +23,7 @@ app.use((req, res, next) => {
     });
   }
   
-  // Create our custom session object
   req.session = {
-    // Parse stored data from cookies or set defaults
     customizationSettings: cookies.customizationSettings ? 
       JSON.parse(cookies.customizationSettings) : 
       { colorScheme: "light", fontSize: "medium", layout: "grid" },
@@ -42,20 +32,18 @@ app.use((req, res, next) => {
       JSON.parse(cookies.pollutedProps) : 
       {},
     
-    // Store feedback in URL instead of session for serverless compatibility
     feedback: req.query.feedback || '',
     
-    // Simple method to save session data to cookies
     save: () => {
       res.cookie('customizationSettings', JSON.stringify(req.session.customizationSettings), {
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
+        maxAge: 7 * 24 * 60 * 60 * 1000,
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax'
       });
       
       res.cookie('pollutedProps', JSON.stringify(req.session.pollutedProps), {
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
+        maxAge: 7 * 24 * 60 * 60 * 1000,
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax'
@@ -66,7 +54,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Custom merge function with vulnerability (preserved for CTF challenge)
 function mergeObjects(target, source) {
   for (const key in source) {
     if (source.hasOwnProperty(key)) {
@@ -81,7 +68,6 @@ function mergeObjects(target, source) {
   return target;
 }
 
-// Product data is now stored directly in cookies
 function getUserProducts(cookies) {
   if (cookies.userProducts) {
     try {
@@ -93,13 +79,11 @@ function getUserProducts(cookies) {
   return {};
 }
 
-// Utility function to redirect with feedback
 function redirectWithFeedback(res, url, message) {
   const redirectUrl = `${url}${url.includes('?') ? '&' : '?'}feedback=${encodeURIComponent(message)}`;
   res.redirect(redirectUrl);
 }
 
-// Routes
 app.get('/', (req, res) => {
   const userProducts = getUserProducts(req.cookies || {});
   
@@ -121,28 +105,21 @@ app.get('/customize', (req, res) => {
 
 app.post('/customize', (req, res) => {
   try {
-    // Parse JSON from request body - this is the vulnerable part
     const newSettings = req.body.settings ? JSON.parse(req.body.settings) : {};
     
-    // Explicitly handle prototype pollution attempt for Vercel compatibility
     if (newSettings.__proto__) {
-      // Store polluted properties in session instead of actual prototype
       mergeObjects(req.session.pollutedProps, newSettings.__proto__);
-      delete newSettings.__proto__; // Remove it from regular settings
+      delete newSettings.__proto__;
       
-      // Explicitly check for isAdmin
       if (newSettings.__proto__ && newSettings.__proto__.isAdmin) {
         req.session.pollutedProps.isAdmin = true;
       }
     }
     
-    // Merging settings using vulnerable function
     req.session.customizationSettings = mergeObjects(req.session.customizationSettings, newSettings);
     
-    // Save to cookies
     req.session.save();
     
-    // Redirect with feedback
     redirectWithFeedback(res, '/customize', 'Settings updated successfully!');
   } catch (error) {
     redirectWithFeedback(res, '/customize', 'Error updating settings: ' + error.message);
@@ -164,10 +141,8 @@ app.post('/products/add', (req, res) => {
   const { name, description, price } = req.body;
   const productId = crypto.randomBytes(8).toString('hex');
   
-  // Get existing products
   let userProducts = getUserProducts(req.cookies || {});
   
-  // Add new product
   userProducts[productId] = {
     id: productId,
     name: name || "Unnamed Product",
@@ -176,9 +151,8 @@ app.post('/products/add', (req, res) => {
     dateAdded: new Date().toISOString()
   };
   
-  // Save products to cookie
   res.cookie('userProducts', JSON.stringify(userProducts), {
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
+    maxAge: 7 * 24 * 60 * 60 * 1000,
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax'
@@ -204,7 +178,6 @@ app.get('/products/:id', (req, res) => {
 });
 
 app.get('/check-admin', (req, res) => {
-  // Check the pollutedProps for isAdmin
   if (req.session.pollutedProps.isAdmin === true) {
     res.render('admin', { 
       flag: FLAG, 
@@ -232,7 +205,6 @@ app.get('/about', (req, res) => {
   });
 });
 
-// Debug route for serverless environment
 app.get('/debug', (req, res) => {
   res.json({
     cookies: req.cookies || {},
@@ -242,8 +214,8 @@ app.get('/debug', (req, res) => {
   });
 });
 
-// app.listen(PORT, () => {
-//   console.log(`Server running on port ${PORT}`);
-// });
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
 module.exports = app;
